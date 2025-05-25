@@ -1,5 +1,5 @@
 import { Container, Graphics } from "pixi.js";
-import { Tile } from "./tile/tile";
+import Tile from "../tile/tile";
 
 export class Grid extends Container {
   public rows: number;
@@ -39,7 +39,7 @@ export class Grid extends Container {
     for (let row = 0; row < this.rows; row++) {
       const tileRow: Tile[] = [];
       for (let col = 0; col < this.cols; col++) {
-        const tile = new Tile(col, row, this.tileWidth, this.tileHeight, this);
+        const tile = new Tile(row, col, this.tileWidth, this.tileHeight, this);
         tile.x = col * this.tileWidth;
         tile.y = row * this.tileHeight;
         tile.interactive = true;
@@ -54,5 +54,15 @@ export class Grid extends Container {
       this.tiles.push(tileRow);
     }
     this.tilesFlattened = this.tiles.flat();
+  }
+
+  public isValidTile(row: number, col: number): boolean {
+    return row >= 0 && row < this.rows && col >= 0 && col < this.cols;
+  }
+  public getTile(row: number, col: number): Tile | null {
+    if (this.isValidTile(row, col)) {
+      return this.tiles[row][col];
+    }
+    return null;
   }
 }

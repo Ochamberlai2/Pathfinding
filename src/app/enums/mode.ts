@@ -6,6 +6,7 @@ enum Mode {
   WEIGHT = "weight",
   PATH = "path",
   VISITED = "visited",
+  CURRENT = "current",
 }
 
 export default Mode;

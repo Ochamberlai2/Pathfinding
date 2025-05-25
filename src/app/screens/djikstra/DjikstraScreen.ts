@@ -1,9 +1,10 @@
 import { Container } from "pixi.js";
 import { Button } from "../../ui/Button";
 import type { Ticker } from "pixi.js";
-import { Grid } from "../../components/grid";
+import { Grid } from "../../components/grid/grid";
 import Tile from "../../components/tile/tile";
 import Mode from "../../enums/mode";
+import PathfindingAlgorithm from "./pathfindingAlgorithm";
 
 export class DjikstraScreen extends Container {
   public static assetBundles = ["main"];
@@ -13,6 +14,10 @@ export class DjikstraScreen extends Container {
   private resetButton: Button;
   private setGoalButton: Button;
   private setStartButton: Button;
+  private executePathfindingButton: Button;
+  private stepButton: Button;
+
+  private algorithm: PathfindingAlgorithm;
 
   private mode: Mode = Mode.NONE;
 
@@ -45,6 +50,38 @@ export class DjikstraScreen extends Container {
     });
     this.addChild(this.resetButton);
 
+    this.executePathfindingButton = new Button({
+      text: "Execute",
+      width: 175,
+      height: 110,
+    });
+    this.executePathfindingButton.onPress.connect(() => {
+      console.log("Execute Pathfinding button pressed");
+      const startTile = this.grid.tilesFlattened.find(
+        (tile) => tile.getMode() === Mode.START
+      );
+      const goalTile = this.grid.tilesFlattened.find(
+        (tile) => tile.getMode() === Mode.GOAL
+      );
+      if (!goalTile) {
+        console.error("Goal tile is not set.");
+        return;
+      }
+      this.algorithm.execute(startTile ?? null, goalTile);
+    });
+    this.addChild(this.executePathfindingButton);
+    this.stepButton = new Button({
+      text: "Step",
+      width: 175,
+      height: 110,
+    });
+    this.stepButton.onPress.connect(() => {
+      console.log("Step button pressed");
+      const nextTile = this.algorithm.step();
+      this.algorithm.nextTile = nextTile;
+    });
+    this.addChild(this.stepButton);
+
     this.setGoalButton = new Button({
       text: "Set Goal",
       width: 175,
@@ -67,9 +104,11 @@ export class DjikstraScreen extends Container {
     });
     this.addChild(this.setStartButton);
 
-    this.grid = this.initializeGrid(10, 10, 75, 75);
+    this.grid = this.initializeGrid(5, 10, 75, 75);
     this.grid.x = (-this.grid.tileWidth * this.grid.cols) / 2;
     this.grid.y = (-this.grid.tileHeight * this.grid.rows) / 2 - 50;
+
+    this.algorithm = new PathfindingAlgorithm();
   }
 
   private initializeGrid(
@@ -94,10 +133,12 @@ export class DjikstraScreen extends Container {
     const centreY = height / 2;
 
     const actions = [
-      this.clearGoalButton,
-      this.resetButton,
+      // this.clearGoalButton,
+      // this.resetButton,
       this.setGoalButton,
       this.setStartButton,
+      this.executePathfindingButton,
+      this.stepButton,
     ];
 
     this.mainContainer.x = centreX;

@@ -1,11 +1,14 @@
 import { Container, Graphics } from "pixi.js";
 import Mode from "../../enums/mode";
-import { Grid } from "../grid";
+import { Grid } from "../grid/grid";
 import { initialiseGraphics, updateGraphics } from "./graphics";
 import { onMouseDown } from "./events";
 export default class Tile extends Container {
   public xCoord: number;
   public yCoord: number;
+  public visited: boolean = false;
+  public distance: number = Infinity;
+  public previous: Tile | null = null;
 
   private mode: Mode = Mode.NONE;
 
@@ -32,7 +35,6 @@ export default class Tile extends Container {
     this.addChild(this.graphic);
   }
 
-  //#region Start Tile
   public setMode(mode: Mode, resetOtherTiles: boolean = false) {
     if (this.mode === mode) return; // No change needed
     if (resetOtherTiles) {
@@ -52,7 +54,40 @@ export default class Tile extends Container {
       });
     }
   }
-  //#endregion
+  public getNeighbors(): Tile[] {
+    const neighbors: Tile[] = [];
+    const { xCoord, yCoord } = this;
+
+    // Check all 4 possible directions (up, down, left, right)
+    const directions = [
+      { r: xCoord, c: yCoord + 1 }, // Up
+      { r: xCoord, c: yCoord - 1 }, // Down
+      { r: xCoord - 1, c: yCoord }, // Left
+      { r: xCoord + 1, c: yCoord }, // Right
+    ];
+
+    for (const { r, c } of directions) {
+      if (this.grid.isValidTile(r, c)) {
+        const neighbourTile = this.grid.getTile(r, c);
+        if (!neighbourTile) {
+          continue; // Skip walls or invalid tiles
+        }
+        neighbors.push(neighbourTile);
+      }
+    }
+
+    return neighbors;
+  }
+
+  public getDistanceToNode(tile: Tile | null): number {
+    if (!tile) {
+      console.error("Invalid tile provided for distance calculation.");
+      return Infinity; // Return a large number if the tileFacade is invalid
+    }
+    return (
+      Math.abs(this.xCoord - tile.xCoord) + Math.abs(this.yCoord - tile.yCoord)
+    );
+  }
   //#region Event Handlers
   public onMouseDown(mode: Mode) {
     onMouseDown(this, mode);
