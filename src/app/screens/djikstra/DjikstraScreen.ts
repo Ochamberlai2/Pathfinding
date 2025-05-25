@@ -2,13 +2,8 @@ import { Container } from "pixi.js";
 import { Button } from "../../ui/Button";
 import type { Ticker } from "pixi.js";
 import { Grid } from "../../components/grid";
-import { Tile } from "../../components/tile";
-
-export enum Mode {
-  SET_START,
-  SET_GOAL,
-  NONE,
-}
+import Tile from "../../components/tile/tile";
+import Mode from "../../enums/mode";
 
 export class DjikstraScreen extends Container {
   public static assetBundles = ["main"];
@@ -56,7 +51,7 @@ export class DjikstraScreen extends Container {
       height: 110,
     });
     this.setGoalButton.onPress.connect(() => {
-      this.mode = Mode.SET_GOAL;
+      this.mode = Mode.GOAL;
       console.log("Set Goal button pressed");
     });
     this.addChild(this.setGoalButton);
@@ -67,7 +62,7 @@ export class DjikstraScreen extends Container {
       height: 110,
     });
     this.setStartButton.onPress.connect(() => {
-      this.mode = Mode.SET_START;
+      this.mode = Mode.START;
       console.log("Set Start button pressed");
     });
     this.addChild(this.setStartButton);

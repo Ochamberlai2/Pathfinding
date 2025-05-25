@@ -1,5 +1,5 @@
 import { Container, Graphics } from "pixi.js";
-import { Tile } from "./tile";
+import { Tile } from "./tile/tile";
 
 export class Grid extends Container {
   public rows: number;
