@@ -1,26 +1,56 @@
 import Tile from "../../components/tile/tile";
 import Mode from "../../enums/mode";
+import { Grid } from "../../components/grid/grid";
 
 export default class PathfindingAlgorithm {
   public currentTile: Tile | null = null;
   public goalTile: Tile | null = null;
-  public goalFound: Boolean = false;
+  public goalFound: boolean = false;
+  public grid: Grid;
   public path: {
     xCoord: number;
     yCoord: number;
     worldX: number;
     worldY: number;
   }[] = [];
-  public execute(startTile: Tile | null, goalTile: Tile) {
+
+  constructor(grid: Grid) {
+    this.grid = grid;
+    this.initialise();
+  }
+
+  public initialise() {
+    const startTile = this.grid.tilesFlattened.find(
+      (tile: Tile) => tile.getMode() === Mode.START
+    );
+    const goalTile = this.grid.tilesFlattened.find(
+      (tile: Tile) => tile.getMode() === Mode.GOAL
+    );
     if (!startTile || !goalTile) {
-      console.error("Start tile is not valid.");
+      console.error("Start tile or goal tile not selected.");
       return;
     }
     this.goalTile = goalTile;
     this.currentTile = startTile;
   }
 
+  public execute() {
+    let nextTile = this.step();
+    while (nextTile) {
+      if (this.goalFound) {
+        console.log("Goal found, stopping execution.");
+        break;
+      }
+      this.currentTile = nextTile;
+      nextTile = this.step();
+    }
+  }
+
   public step(): Tile | null {
+    if (!this.goalTile || !this.currentTile) {
+      this.initialise();
+    }
+
     if (this.goalFound) return this.currentTile;
     if (!this.currentTile) {
       console.error("No current tile to evaluate.");

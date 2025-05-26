@@ -108,7 +108,7 @@ export class DjikstraScreen extends Container {
     this.grid.x = (-this.grid.tileWidth * this.grid.cols) / 2;
     this.grid.y = (-this.grid.tileHeight * this.grid.rows) / 2 - 50;
 
-    this.algorithm = new PathfindingAlgorithm();
+    this.algorithm = new PathfindingAlgorithm(this.grid);
   }
 
   private initializeGrid(
