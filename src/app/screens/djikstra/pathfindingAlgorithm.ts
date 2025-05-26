@@ -1,19 +1,15 @@
 import Tile from "../../components/tile/tile";
 import Mode from "../../enums/mode";
 import { Grid } from "../../components/grid/grid";
+import TerrainType from "../../enums/terrainType";
 
 export default class PathfindingAlgorithm {
   public currentTile: Tile | null = null;
+  public startTile: Tile | null = null;
   public goalTile: Tile | null = null;
   public goalFound: boolean = false;
   public grid: Grid;
-  public path: {
-    xCoord: number;
-    yCoord: number;
-    worldX: number;
-    worldY: number;
-  }[] = [];
-
+  public frontier: Tile[] = []; // This can be used to track the frontier of tiles being evaluated
   constructor(grid: Grid) {
     this.grid = grid;
     this.initialise();
@@ -31,103 +27,95 @@ export default class PathfindingAlgorithm {
       return;
     }
     this.goalTile = goalTile;
-    this.currentTile = startTile;
+    this.startTile = startTile;
+    this.startTile.distance = 0;
+    this.frontier.push(this.startTile);
+    if (!this.currentTile) {
+      this.setCurrentNode(this.getNextNode());
+    }
   }
 
-  public execute() {
-    let nextTile = this.step();
+  public async execute() {
+    this.initialise();
+    let nextTile = this.currentTile;
     while (nextTile) {
+      this.step();
       if (this.goalFound) {
         console.log("Goal found, stopping execution.");
         break;
       }
-      this.currentTile = nextTile;
-      nextTile = this.step();
+      nextTile = this.getNextNode();
+      this.setCurrentNode(nextTile);
     }
   }
 
-  public step(): Tile | null {
+  public step() {
     if (!this.goalTile || !this.currentTile) {
       this.initialise();
     }
-
     if (this.goalFound) return this.currentTile;
     if (!this.currentTile) {
       console.error("No current tile to evaluate.");
       return null;
     }
-    const isGoal = this.evaluateNode(this.currentTile);
-    // this.nextTile.setMode(Mode.CURRENT, true);
-
-    // Check if the current tile is the goal
-    if (isGoal) {
-      console.log("Goal found!");
+    if (this.currentTile === this.goalTile) {
       this.goalFound = true;
-      if (!this.goalTile) {
-        console.error("Goal tile is not set.");
-        return null;
-      }
-      this.goalTile.previous = this.currentTile; // Set the previous tile for the goal
-      this.path = this.buildPath();
+      this.buildPath();
+      console.log("Goal found at tile:", this.currentTile);
+      this.currentTile.setMode(Mode.PATH, false);
+      this.frontier = []; // Clear the frontier as the goal has been found
+      return this.currentTile; // Return the goal tile
     }
-
-    // Return the next tile to evaluate, if any
-    //find the tile with the lowest distance that has not been visited
-    const neighbours = this.currentTile.getNeighbors();
-    const nextTile = neighbours.reduce((closest, neighbour) => {
-      if (neighbour.visited) return closest;
-      if (!closest || neighbour.distance < closest.distance) {
-        return neighbour;
+    const unvisitedNeighbours = this.currentTile
+      .getNeighbors()
+      .filter(
+        (tile) => !tile.visited && tile.getTerrainType() !== TerrainType.WALL
+      );
+    unvisitedNeighbours.forEach((tile) => {
+      if (!this.currentTile) {
+        throw new Error("Current tile is blank");
+      }
+      const tentativeDistance =
+        this.currentTile.distance + tile.opportunityCost; // Assuming uniform cost for simplicity
+      if (tentativeDistance < tile.distance) {
+        tile.distance = tentativeDistance;
+        tile.previous = this.currentTile;
+        this.frontier.push(tile); // Add to frontier for further evaluation
+      }
+      this.currentTile.visited = true; // Mark current tile as visited
+      this.currentTile.setMode(Mode.VISITED, false); // Set the mode to VISITED for visualization
+    });
+  }
+  public setCurrentNode(tile: Tile) {
+    this.currentTile = tile;
+    this.currentTile.setMode(Mode.CURRENT, true); // Set the mode to CURRENT for visualization
+  }
+  public getNextNode(): Tile {
+    if (this.frontier.length === 0) {
+      throw new Error("No more tiles to evaluate.");
+    }
+    // Find the tile with the lowest distance in the frontier
+    const nextTile = this.frontier.reduce((closest, tile) => {
+      if (!closest || tile.distance < closest.distance) {
+        return tile;
       }
       return closest;
-    }, neighbours[0]);
-    nextTile.setMode(Mode.CURRENT, true);
-    nextTile.previous = this.currentTile;
-    return nextTile ? nextTile : null;
+    }, this.frontier[0]);
+
+    // Remove the next tile from the frontier
+    this.frontier = this.frontier.filter((tile) => tile !== nextTile);
+
+    return nextTile;
   }
 
-  private evaluateNode(tile: Tile): Tile | null {
-    tile.visited = true;
-    tile.setMode(Mode.VISITED, false);
-    const neighbours = tile.getNeighbors();
-
-    let foundGoalTile: Tile | null = null;
-    neighbours.forEach((neighbour) => {
-      if (neighbour.visited) return;
-
-      const distance = neighbour.getDistanceToNode(this.goalTile);
-      if (distance < neighbour.distance) {
-        neighbour.distance = distance;
-      }
-
-      // If the neighbour is the goal, we can stop evaluating
-      if (neighbour.isGoal) {
-        console.log("Goal found!");
-        foundGoalTile = neighbour;
-      }
-    });
-    return foundGoalTile;
-  }
-
-  private buildPath(): {
-    xCoord: number;
-    yCoord: number;
-    worldX: number;
-    worldY: number;
-  }[] {
-    const path = [];
+  private buildPath(): Tile[] {
+    const path: Tile[] = [];
     let currentTile: Tile | null = this.goalTile;
     while (currentTile) {
-      currentTile?.setMode(Mode.PATH, false);
-      path.push({
-        xCoord: currentTile.xCoord,
-        yCoord: currentTile.yCoord,
-        worldX: currentTile.x,
-        worldY: currentTile.y,
-      });
-      currentTile = currentTile.previous; // Assuming each tile has a 'previous' property
+      currentTile.setMode(Mode.PATH, false); // Set the mode to PATH for visualization
+      path.unshift(currentTile); // Add to the beginning of the path
+      currentTile = currentTile.previous; // Move to the previous tile
     }
-
-    return path.reverse(); // Reverse the path to get it from start to goal
+    return path;
   }
 }
