@@ -2,8 +2,9 @@ import Tile from "../../components/tile/tile";
 import Mode from "../../enums/mode";
 
 export default class PathfindingAlgorithm {
-  public nextTile: Tile | null = null;
+  public currentTile: Tile | null = null;
   public goalTile: Tile | null = null;
+  public goalFound: Boolean = false;
   public path: {
     xCoord: number;
     yCoord: number;
@@ -16,26 +17,33 @@ export default class PathfindingAlgorithm {
       return;
     }
     this.goalTile = goalTile;
-    this.nextTile = startTile;
+    this.currentTile = startTile;
   }
 
   public step(): Tile | null {
-    if (!this.nextTile) {
+    if (this.goalFound) return this.currentTile;
+    if (!this.currentTile) {
       console.error("No current tile to evaluate.");
       return null;
     }
-    const isGoal = this.evaluateNode(this.nextTile);
+    const isGoal = this.evaluateNode(this.currentTile);
     // this.nextTile.setMode(Mode.CURRENT, true);
 
     // Check if the current tile is the goal
     if (isGoal) {
       console.log("Goal found!");
+      this.goalFound = true;
+      if (!this.goalTile) {
+        console.error("Goal tile is not set.");
+        return null;
+      }
+      this.goalTile.previous = this.currentTile; // Set the previous tile for the goal
       this.path = this.buildPath();
     }
 
     // Return the next tile to evaluate, if any
     //find the tile with the lowest distance that has not been visited
-    const neighbours = this.nextTile.getNeighbors();
+    const neighbours = this.currentTile.getNeighbors();
     const nextTile = neighbours.reduce((closest, neighbour) => {
       if (neighbour.visited) return closest;
       if (!closest || neighbour.distance < closest.distance) {
@@ -44,7 +52,7 @@ export default class PathfindingAlgorithm {
       return closest;
     }, neighbours[0]);
     nextTile.setMode(Mode.CURRENT, true);
-    nextTile.previous = this.nextTile;
+    nextTile.previous = this.currentTile;
     return nextTile ? nextTile : null;
   }
 
@@ -79,8 +87,8 @@ export default class PathfindingAlgorithm {
   }[] {
     const path = [];
     let currentTile: Tile | null = this.goalTile;
-    currentTile?.setMode(Mode.PATH, false);
     while (currentTile) {
+      currentTile?.setMode(Mode.PATH, false);
       path.push({
         xCoord: currentTile.xCoord,
         yCoord: currentTile.yCoord,

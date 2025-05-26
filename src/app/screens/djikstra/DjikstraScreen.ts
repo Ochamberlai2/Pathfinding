@@ -78,7 +78,7 @@ export class DjikstraScreen extends Container {
     this.stepButton.onPress.connect(() => {
       console.log("Step button pressed");
       const nextTile = this.algorithm.step();
-      this.algorithm.nextTile = nextTile;
+      this.algorithm.currentTile = nextTile;
     });
     this.addChild(this.stepButton);
 
@@ -104,7 +104,7 @@ export class DjikstraScreen extends Container {
     });
     this.addChild(this.setStartButton);
 
-    this.grid = this.initializeGrid(5, 10, 75, 75);
+    this.grid = this.initializeGrid(10, 10, 75, 75);
     this.grid.x = (-this.grid.tileWidth * this.grid.cols) / 2;
     this.grid.y = (-this.grid.tileHeight * this.grid.rows) / 2 - 50;
 
